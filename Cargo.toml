@@ -1,6 +1,6 @@
 [package]
 name = "cortex-m-rtfm-stm32f0xx"
-version = "0.1.0"
+version = "0.5.0"
 authors = ["Joe Ferner <joe@fernsroth.com>"]
 edition = "2018"
 
@@ -10,12 +10,14 @@ name = "rtfm_stm32f0xx"
 [dependencies]
 cortex-m = "0.6.1"
 cortex-m-rt = "0.6.10"
+stm32f0 = "0.8.0"
+cortex-m-rtfm = { path = "../cortex-m-rtfm" }
 
-[dependencies.stm32f0]
-version = "0.8.0"
-
-[dependencies.cortex-m-rtfm]
-git = "https://github.com/rtfm-rs/cortex-m-rtfm"
+[dev-dependencies]
+panic-semihosting = "0.5.3"
+cortex-m-semihosting = "0.3.5"
+embedded-hal = { path = "../embedded-hal" }
+stm32f0xx-hal = { path = "../stm32f0xx-hal", features = ["stm32f072"] }
 
 [features]
 device-selected = []
