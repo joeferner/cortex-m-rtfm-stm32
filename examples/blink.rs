@@ -3,7 +3,7 @@
 
 extern crate panic_semihosting;
 
-use rtfm_stm32f0xx::tim::tim2::{Instant, U32Ext as _};
+use rtfm_stm32f0xx::tim::tim2::{Instant, Duration};
 
 use cortex_m_semihosting::hprintln;
 use stm32f0xx_hal::{
@@ -12,6 +12,7 @@ use stm32f0xx_hal::{
     time,
     timers,
 };
+use embedded_hal::timer::Monotonic;
 
 #[rtfm::app(device = stm32f0::stm32f0x2, peripherals = true, monotonic = rtfm_stm32f0xx::tim::tim2::TIM2)]
 const APP: () = {
@@ -22,7 +23,7 @@ const APP: () = {
     #[init(schedule = [blink])]
     fn init(ctx: init::Context) -> init::LateResources {
         let mut p: stm32f0::stm32f0x2::Peripherals = ctx.device;
-        let mut rcc = p.RCC.configure().freeze(&mut p.FLASH);
+        let mut rcc = p.RCC.configure().sysclk(8.mhz()).freeze(&mut p.FLASH);
         let _timer = timers::MonotonicTimer::tim2(p.TIM2, time::Hertz(1000), &mut rcc);
         let gpioc = p.GPIOC.split(&mut rcc);
 
@@ -30,7 +31,11 @@ const APP: () = {
             gpioc.pc7.into_push_pull_output(cs)
         });
 
-        ctx.schedule.blink(Instant::now() + 1000.ticks()).unwrap();
+        for x in 0..10 {
+            hprintln!("t {}", _timer.get()).unwrap();
+        }
+
+        ctx.schedule.blink(Instant::now() + Duration::from_ticks(1000)).unwrap();
 
         init::LateResources { led }
     }
@@ -39,7 +44,7 @@ const APP: () = {
     fn blink(ctx: blink::Context) {
         hprintln!("tock").unwrap();
         ctx.resources.led.toggle().unwrap();
-        ctx.schedule.blink(Instant::now() + 1000.ticks()).unwrap();
+        ctx.schedule.blink(Instant::now() + Duration::from_ticks(1000)).unwrap();
     }
 
     extern "C" {

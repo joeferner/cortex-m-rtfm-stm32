@@ -1,7 +1,7 @@
 //! TIM based monotonic
 
 macro_rules! timers {
-($($TIM:ident: ($tim:ident, $width:ident, $ptr:expr),)+) => {
+($($TIM:ident: ($tim:ident, $width:ident, $signed_width:ident, $ptr:expr),)+) => {
     $(
         pub mod $tim {
             use core::{
@@ -43,15 +43,15 @@ macro_rules! timers {
 
                 /// Returns the amount of time elapsed from another instant to this one.
                 pub fn duration_since(&self, earlier: Instant) -> Duration {
-                    let diff = self.inner - earlier.inner;
-                    Duration { inner: diff as u32 }
+                    let diff = self.inner.wrapping_sub(earlier.inner) as $signed_width;
+                    Duration { inner: diff }
                 }
             }
 
             impl fmt::Debug for Instant {
                 fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
                     f.debug_tuple("Instant")
-                        .field(&(self.inner as u32))
+                        .field(&(self.inner as $width))
                         .finish()
                 }
             }
@@ -96,7 +96,8 @@ macro_rules! timers {
 
             impl Ord for Instant {
                 fn cmp(&self, rhs: &Self) -> Ordering {
-                    self.inner.wrapping_sub(rhs.inner).cmp(&0)
+                    let diff = self.inner.wrapping_sub(rhs.inner) as $signed_width;
+                    diff.cmp(&0)
                 }
             }
 
@@ -109,26 +110,34 @@ macro_rules! timers {
             /// A `Duration` type to represent a span of time.
             #[derive(Clone, Copy, Default, Eq, Ord, PartialEq, PartialOrd)]
             pub struct Duration {
-                inner: u32,
+                inner: $signed_width,
             }
 
             impl Duration {
                 /// Creates a new `Duration` from the specified number of ticks
-                pub fn from_ticks(ticks: u32) -> Self {
+                pub fn from_ticks(ticks: $signed_width) -> Self {
                     Duration { inner: ticks }
                 }
 
                 /// Returns the total number of ticks contained by this `Duration`
-                pub fn as_ticks(&self) -> u32 {
+                pub fn as_ticks(&self) -> $signed_width {
                     self.inner
                 }
             }
 
-            impl TryInto<u32> for Duration {
+            impl TryInto<$signed_width> for Duration {
                 type Error = Infallible;
 
-                fn try_into(self) -> Result<u32, Infallible> {
+                fn try_into(self) -> Result<$signed_width, Infallible> {
                     Ok(self.as_ticks())
+                }
+            }
+
+            impl TryInto<$width> for Duration {
+                type Error = Infallible;
+
+                fn try_into(self) -> Result<$width, Infallible> {
+                    Ok(self.as_ticks() as $width)
                 }
             }
 
@@ -161,18 +170,6 @@ macro_rules! timers {
                     Duration {
                         inner: self.inner - rhs.inner,
                     }
-                }
-            }
-
-            /// Adds the `ticks` method to the `u32` type
-            pub trait U32Ext {
-                /// Converts the `u32` value into clock ticks
-                fn ticks(self) -> Duration;
-            }
-
-            impl U32Ext for u32 {
-                fn ticks(self) -> Duration {
-                    Duration { inner: self }
                 }
             }
 
@@ -215,11 +212,11 @@ feature = "stm32f030xc",
 feature = "stm32f070xb",
 ))]
 timers! {
-    TIM1: (tim1, u16, stm32f0::stm32f0x0::TIM1::ptr()),
-    TIM3: (tim3, u16, stm32f0::stm32f0x0::TIM3::ptr()),
-    TIM14: (tim14, u16, stm32f0::stm32f0x0::TIM14::ptr()),
-    TIM16: (tim16, u16, stm32f0::stm32f0x0::TIM16::ptr()),
-    TIM17: (tim17, u16, stm32f0::stm32f0x0::TIM17::ptr()),
+    TIM1: (tim1, u16, i16, stm32f0::stm32f0x0::TIM1::ptr()),
+    TIM3: (tim3, u16, i16, stm32f0::stm32f0x0::TIM3::ptr()),
+    TIM14: (tim14, u16, i16, stm32f0::stm32f0x0::TIM14::ptr()),
+    TIM16: (tim16, u16, i16, stm32f0::stm32f0x0::TIM16::ptr()),
+    TIM17: (tim17, u16, i16, stm32f0::stm32f0x0::TIM17::ptr()),
 }
 
 #[cfg(any(
@@ -229,11 +226,11 @@ feature = "stm32f071",
 feature = "stm32f091",
 ))]
 timers! {
-    TIM1: (tim1, u16, stm32f0::stm32f0x1::TIM1::ptr()),
-    TIM3: (tim3, u16, stm32f0::stm32f0x1::TIM3::ptr()),
-    TIM14: (tim14, u16, stm32f0::stm32f0x1::TIM14::ptr()),
-    TIM16: (tim16, u16, stm32f0::stm32f0x1::TIM16::ptr()),
-    TIM17: (tim17, u16, stm32f0::stm32f0x1::TIM17::ptr()),
+    TIM1: (tim1, u16, i16, stm32f0::stm32f0x1::TIM1::ptr()),
+    TIM3: (tim3, u16, i16, stm32f0::stm32f0x1::TIM3::ptr()),
+    TIM14: (tim14, u16, i16, stm32f0::stm32f0x1::TIM14::ptr()),
+    TIM16: (tim16, u16, i16, stm32f0::stm32f0x1::TIM16::ptr()),
+    TIM17: (tim17, u16, i16, stm32f0::stm32f0x1::TIM17::ptr()),
 }
 
 #[cfg(any(
@@ -241,11 +238,11 @@ feature = "stm32f042",
 feature = "stm32f072",
 ))]
 timers! {
-    TIM1: (tim1, u16, stm32f0::stm32f0x2::TIM1::ptr()),
-    TIM3: (tim3, u16, stm32f0::stm32f0x2::TIM3::ptr()),
-    TIM14: (tim14, u16, stm32f0::stm32f0x2::TIM14::ptr()),
-    TIM16: (tim16, u16, stm32f0::stm32f0x2::TIM16::ptr()),
-    TIM17: (tim17, u16, stm32f0::stm32f0x2::TIM17::ptr()),
+    TIM1: (tim1, u16, i16, stm32f0::stm32f0x2::TIM1::ptr()),
+    TIM3: (tim3, u16, i16, stm32f0::stm32f0x2::TIM3::ptr()),
+    TIM14: (tim14, u16, i16, stm32f0::stm32f0x2::TIM14::ptr()),
+    TIM16: (tim16, u16, i16, stm32f0::stm32f0x2::TIM16::ptr()),
+    TIM17: (tim17, u16, i16, stm32f0::stm32f0x2::TIM17::ptr()),
 }
 
 #[cfg(any(
@@ -256,11 +253,11 @@ feature = "stm32f078",
 feature = "stm32f098",
 ))]
 timers! {
-    TIM1: (tim1, u16, stm32f0::stm32f0x8::TIM1::ptr()),
-    TIM3: (tim3, u16, stm32f0::stm32f0x8::TIM3::ptr()),
-    TIM14: (tim14, u16, stm32f0::stm32f0x8::TIM14::ptr()),
-    TIM16: (tim16, u16, stm32f0::stm32f0x8::TIM16::ptr()),
-    TIM17: (tim17, u16, stm32f0::stm32f0x8::TIM17::ptr()),
+    TIM1: (tim1, u16, i16, stm32f0::stm32f0x8::TIM1::ptr()),
+    TIM3: (tim3, u16, i16, stm32f0::stm32f0x8::TIM3::ptr()),
+    TIM14: (tim14, u16, i16, stm32f0::stm32f0x8::TIM14::ptr()),
+    TIM16: (tim16, u16, i16, stm32f0::stm32f0x8::TIM16::ptr()),
+    TIM17: (tim17, u16, i16, stm32f0::stm32f0x8::TIM17::ptr()),
 }
 
 #[cfg(any(
@@ -270,7 +267,7 @@ feature = "stm32f071",
 feature = "stm32f091",
 ))]
 timers! {
-    TIM2: (tim2, u32, stm32f0::stm32f0x1::TIM2::ptr()),
+    TIM2: (tim2, u32, i32, stm32f0::stm32f0x1::TIM2::ptr()),
 }
 
 #[cfg(any(
@@ -278,7 +275,7 @@ feature = "stm32f042",
 feature = "stm32f072",
 ))]
 timers! {
-    TIM2: (tim2, u32, stm32f0::stm32f0x2::TIM2::ptr()),
+    TIM2: (tim2, u32, i32, stm32f0::stm32f0x2::TIM2::ptr()),
 }
 
 #[cfg(any(
@@ -289,7 +286,7 @@ feature = "stm32f078",
 feature = "stm32f098",
 ))]
 timers! {
-    TIM2: (tim2, u32, stm32f0::stm32f0x8::TIM2::ptr()),
+    TIM2: (tim2, u32, i32, stm32f0::stm32f0x8::TIM2::ptr()),
 }
 
 #[cfg(any(
@@ -298,8 +295,8 @@ feature = "stm32f030xc",
 feature = "stm32f070xb",
 ))]
 timers! {
-    TIM6: (tim6, u16, stm32f0::stm32f0x0::TIM6::ptr()),
-    TIM15: (tim15, u16, stm32f0::stm32f0x0::TIM15::ptr()),
+    TIM6: (tim6, u16, i16, stm32f0::stm32f0x0::TIM6::ptr()),
+    TIM15: (tim15, u16, i16, stm32f0::stm32f0x0::TIM15::ptr()),
 }
 
 #[cfg(any(
@@ -308,16 +305,16 @@ feature = "stm32f071",
 feature = "stm32f091",
 ))]
 timers! {
-    TIM6: (tim6, u16, stm32f0::stm32f0x1::TIM6::ptr()),
-    TIM15: (tim15, u16, stm32f0::stm32f0x1::TIM15::ptr()),
+    TIM6: (tim6, u16, i16, stm32f0::stm32f0x1::TIM6::ptr()),
+    TIM15: (tim15, u16, i16, stm32f0::stm32f0x1::TIM15::ptr()),
 }
 
 #[cfg(any(
 feature = "stm32f072",
 ))]
 timers! {
-    TIM6: (tim6, u16, stm32f0::stm32f0x2::TIM6::ptr()),
-    TIM15: (tim15, u16, stm32f0::stm32f0x2::TIM15::ptr()),
+    TIM6: (tim6, u16, i16, stm32f0::stm32f0x2::TIM6::ptr()),
+    TIM15: (tim15, u16, i16, stm32f0::stm32f0x2::TIM15::ptr()),
 }
 
 #[cfg(any(
@@ -326,8 +323,8 @@ feature = "stm32f078",
 feature = "stm32f098",
 ))]
 timers! {
-    TIM6: (tim6, u16, stm32f0::stm32f0x8::TIM6::ptr()),
-    TIM15: (tim15, u16, stm32f0::stm32f0x8::TIM15::ptr()),
+    TIM6: (tim6, u16, i16, stm32f0::stm32f0x8::TIM6::ptr()),
+    TIM15: (tim15, u16, i16, stm32f0::stm32f0x8::TIM15::ptr()),
 }
 
 #[cfg(any(
@@ -335,7 +332,7 @@ feature = "stm32f030xc",
 feature = "stm32f070xb",
 ))]
 timers! {
-    TIM7: (tim7, u16, stm32f0::stm32f0x0::TIM7::ptr()),
+    TIM7: (tim7, u16, i16, stm32f0::stm32f0x0::TIM7::ptr()),
 }
 
 #[cfg(any(
@@ -343,14 +340,14 @@ feature = "stm32f071",
 feature = "stm32f091",
 ))]
 timers! {
-    TIM7: (tim7, u16, stm32f0::stm32f0x1::TIM7::ptr()),
+    TIM7: (tim7, u16, i16, stm32f0::stm32f0x1::TIM7::ptr()),
 }
 
 #[cfg(any(
 feature = "stm32f072",
 ))]
 timers! {
-    TIM7: (tim7, u16, stm32f0::stm32f0x2::TIM7::ptr()),
+    TIM7: (tim7, u16, i16, stm32f0::stm32f0x2::TIM7::ptr()),
 }
 
 #[cfg(any(
@@ -358,5 +355,5 @@ feature = "stm32f078",
 feature = "stm32f098",
 ))]
 timers! {
-    TIM7: (tim7, u16, stm32f0::stm32f0x8::TIM7::ptr()),
+    TIM7: (tim7, u16, i16, stm32f0::stm32f0x8::TIM7::ptr()),
 }

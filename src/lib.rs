@@ -12,7 +12,7 @@
 ///   #[init]
 ///   fn init(ctx: init::Context) {
 ///      initialize_tim2();
-///      ctx.schedule.blink(Instant::now() + 1000.ticks()).unwrap();
+///      ctx.schedule.blink(Instant::now() + Duration::from_ticks(1000)).unwrap();
 ///   }
 /// };
 /// ```
