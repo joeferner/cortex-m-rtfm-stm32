@@ -1,4 +1,4 @@
-.PHONY: build watch openocd run
+.PHONY: build watch openocd run clean
 
 build:
 	cargo build
@@ -6,8 +6,5 @@ build:
 watch:
 	cargo watch
 
-openocd:
-	openocd
-
-run-blink:
-	cargo run --example blink --target thumbv6m-none-eabi --features stm32f072
+clean:
+	cargo clean

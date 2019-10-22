@@ -182,7 +182,7 @@ macro_rules! timers {
                 fn ratio() -> Fraction {
                     Fraction {
                         numerator: 1,
-                        denominator: 1,
+                        denominator: 8000,
                     }
                 }
 

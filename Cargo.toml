@@ -10,7 +10,7 @@ name = "rtfm_stm32f0xx"
 [dependencies]
 cortex-m = "0.6.1"
 cortex-m-rt = "0.6.10"
-stm32f0 = "0.8.0"
+stm32f0 = {version = "0.8.0", features = ["rt"] }
 cortex-m-rtfm = { path = "../cortex-m-rtfm" }
 
 [dev-dependencies]
